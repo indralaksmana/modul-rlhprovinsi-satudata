@@ -15,7 +15,7 @@ $ composer require indralaksmana/modul-rlhprovinsi-satudata "1.0.0"
 ``` php
 'providers' => array(
     ...
-    Satudata\Rlsprovinsi\RlhprovinsiServiceProvider::class,
+    Satudata\Rlhprovinsi\RlhprovinsiServiceProvider::class,
     Maatwebsite\Excel\ExcelServiceProvider::class,
 ),
 ```

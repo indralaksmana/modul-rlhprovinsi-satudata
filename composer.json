@@ -1,6 +1,8 @@
 {
-    "name": "satudata/rlhprovinsi",
+    "name": "indralaksmana/modul-rlhprovinsi-satudata",
     "description": "This package is one of satudata banten application modules",
+    "type": "Module",
+    "license": "MIT",
     "authors": [
         {
             "name": "MKI",
