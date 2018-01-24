@@ -1,0 +1,175 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: RendiArca
+ * Date: 27/12/2017
+ * Time: 15.45
+ */
+
+namespace App\Http\Controllers;
+
+use App\RlhProvinsi;
+use App\MasterWilayah;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+
+class RlhProvinsiController extends Controller
+{
+    public function getIndex(Request $request){
+        return view('main');
+    }
+
+    public function getList(Request $request)
+    {
+        $year = RlhProvinsi::year()->get();
+        $kota = RlhProvinsi::kotakode()->get();
+
+        $a=0;
+        $b=0;
+        $datas = array();
+        foreach ($kota as $kotas){
+            foreach ($year as $years){
+                $query = DB::table('rlhprovinsi');
+                $query = $query->select(DB::raw("rlhprovinsikotakode, kota_nama, SUM(rlhprovinsivalue) as rlhprovinsivalue, EXTRACT(YEAR FROM rlhprovinsitgl) as tahun"));
+                $query = $query->join('master_kota','master_kota.kota_kode','=','rlhprovinsi.rlhprovinsikotakode');
+                $query = $query->whereBetween('rlhprovinsitgl', array($years->tahun.'-01-01', $years->tahun.'-12-31'));
+                $query = $query->where('rlhprovinsikotakode', $kotas->rlhprovinsikotakode);
+                $query = $query->groupBy(array('rlhprovinsikotakode', 'kota_nama', 'tahun'));
+                $haragaberlaku = $query->get();
+
+                if(!$haragaberlaku->isEmpty()){
+                    foreach ($haragaberlaku as $harga){
+                        $datas[$a]['kode'] = $harga->rlhprovinsikotakode;
+                        $datas[$a]['kota'] = $harga->kota_nama;
+                        $datas[$a][$years->tahun] = $harga->rlhprovinsivalue;
+                    }
+                }else{
+                    $datas[$a][$years->tahun] = '-';
+                }
+                $b++;
+            }
+            $a++;
+        }
+
+        return response()->json($datas);
+    }
+
+
+    public function createRlhProvinsiSave(Request $request)
+    {
+        $rlhprovinsi = new RlhProvinsi();
+        $rlhprovinsi->rlhprovinsivalue            = $request->input('rlhprovinsiValue');
+        $rlhprovinsi->rlhprovinsitgl              = $request->input('rlhprovinsiTgl');
+        $rlhprovinsi->rlhprovinsiprovincekode     = $request->input('rlhprovinsiProvinceKode');
+        $rlhprovinsi->rlhprovinsikotakode         = $request->input('rlhprovinsiKotaKode');
+        $rlhprovinsi->rlhprovinsicreatedate       = date('Y-m-d H:i:s');
+        $rlhprovinsi->rlhprovinsicreateby         = 1;
+        $rlhprovinsi->rlhprovinsistatus           = 1;
+
+        if($rlhprovinsi->save())
+        {
+            $responses = array('message' => 'Penambahan telah disimpan.');
+        }else{
+            $responses = array('message' => 'Terjadi kesalaahan. Penambahan gagal disimpan.');
+        }
+        return response()->json($responses);
+    }
+
+    public function detailRlhProvinsi($id)
+    {
+        $header = '<div class="block-header">';
+        $header .= '<h2 style="display: inline;">Organisasi</h2>';
+        $header .= '</div>';
+
+        $rlhprovinsi = RlhProvinsi::rlhprovinsiById($id)->get();
+
+        return view('backend.laporan.rlhprovinsi.detail')
+            ->with('header', $header)
+            ->with('rlhprovinsi', $rlhprovinsi);
+    }
+
+    public function export($type){
+        $year = RlhProvinsi::year()->get();
+        $kota = RlhProvinsi::kotakode()->get();
+
+        $a=0;
+        $b=0;
+        $datas = array();
+        foreach ($kota as $kotas){
+            foreach ($year as $years){
+                $query = DB::table('rlhprovinsi');
+                $query = $query->select(DB::raw("rlhprovinsikotakode, kota_nama, SUM(rlhprovinsivalue) as rlhprovinsivalue, EXTRACT(YEAR FROM rlhprovinsitgl) as tahun"));
+                $query = $query->join('master_kota','master_kota.kota_kode','=','rlhprovinsi.rlhprovinsikotakode');
+
+                $query = $query->whereBetween('rlhprovinsitgl', array($years->tahun.'-01-01', $years->tahun.'-12-31'));
+                $query = $query->where('rlhprovinsikotakode', $kotas->rlhprovinsikotakode);
+                $query = $query->groupBy(array('rlhprovinsikotakode', 'kota_nama', 'tahun'));
+                $haragaberlaku = $query->get();
+
+                $datas[$a]['Kota/Kabupaten'] = $kotas->kota_nama;
+
+                if(!$haragaberlaku->isEmpty()){
+                    foreach ($haragaberlaku as $harga){
+                        $datas[$a][$years->tahun] = $harga->rlhprovinsivalue;
+                    }
+                }else{
+                    $datas[$a][$years->tahun] = '-';
+                }
+                $b++;
+            }
+            $a++;
+        }
+        return Excel::create('Rumah Layak Huni Provinsi Banten', function($excel) use ($datas) {
+            $excel->sheet('mySheet', function($sheet) use ($datas)
+            {
+                $sheet->fromArray($datas);
+            });
+        })->download($type);
+    }
+
+    public function getKota($id)
+    {
+        $kota = MasterWilayah::kotaByKode($id)->get();
+        return response()->json($kota->toArray());
+    }
+
+    public function getProvinsi(){
+        $provinsi = MasterWilayah::provinsi()->get();
+        return response()->json($provinsi);
+    }
+
+    public function getColumns()
+    {
+        $data1 = array(
+            array(
+                'label' => 'Kode',
+                'field' => 'kode',
+                'numeric' => false,
+                'html' => false
+            ),
+            array(
+                'label' => 'Kota',
+                'field' => 'kota',
+                'numeric' => false,
+                'html' => false
+            ),
+        );
+
+        $year = RlhProvinsi::year()->orderBy('tahun','ASC')->get();
+        $data2 = array();
+        $i=0;
+        foreach($year as $y){
+            $data2[$i]['label'] = $y->tahun;
+            $data2[$i]['field'] = $y->tahun;
+            $data2[$i]['numeric'] = true;
+            $data2[$i]['html'] = false;
+            $i++;
+        }
+        $datas = array_merge($data1, $data2);
+        return response()->json($datas);
+    }
+}

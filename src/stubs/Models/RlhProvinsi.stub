@@ -1,0 +1,42 @@
+<?php
+
+namespace App;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
+class RlhProvinsi extends Model
+{
+    protected $table = 'rlhprovinsi';
+    protected $primaryKey = 'rlhprovinsiid';
+    public $timestamps = false;
+
+    public static function rlhprovinsiById($id)
+    {
+        return DB::table('rlhprovinsi')
+            ->select(DB::raw('*'))
+            ->where('rlhprovinsistatus',$id)
+            ->where('rlhprovinsistatus',1)
+            ->where('rlhprovinsilogid')
+            ->orderBy('rlhprovinsiid', 'ASC');
+    }
+
+    public static function year()
+    {
+        $nYear = Date('Y');
+        $sYear = $nYear - 5;
+
+        return DB::table('rlhprovinsi')
+            ->select(DB::raw(' EXTRACT(YEAR FROM rlhprovinsitgl) as tahun'))
+            ->whereBetween('rlhprovinsitgl', array($sYear.'-01-01', $nYear.'-12-31'))
+            ->groupBy('tahun');
+    }
+
+    public static function kotakode()
+    {
+        return DB::table('rlhprovinsi')
+            ->select(DB::raw('rlhprovinsikotakode, kota_nama'))
+            ->join('master_kota','master_kota.kota_kode','=','rlhprovinsi.rlhprovinsikotakode')
+            ->groupBy(array('rlhprovinsikotakode', 'kota_nama'));
+    }
+}

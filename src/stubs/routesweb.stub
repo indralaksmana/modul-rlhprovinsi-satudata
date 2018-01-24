@@ -1,0 +1,16 @@
+Route::group(['prefix' => 'rlhprovinsi', 'middleware' => 'web'], function() {
+    Route::get('/', 'RlhProvinsiController@getIndex');
+    Route::get('/list', 'RlhProvinsiController@getList');
+    Route::get('/detail/{id}', 'RlhProvinsiController@detailRlhProvinsi');
+    Route::post('/create', 'RlhProvinsiController@createRlhProvinsiSave');
+    Route::get('/update/{id}', 'RlhProvinsiController@updateRlhProvinsi');
+    Route::post('/update/{id}', 'RlhProvinsiController@getIndex');
+    Route::post('/delete/{id}', 'RlhProvinsiController@getIndex');
+    Route::post('/activate/{id}', 'RlhProvinsiController@getIndex');
+    Route::post('/unactivate/{id}', 'RlhProvinsiController@getIndex');
+    Route::get('/getKota/{id}', 'RlhProvinsiController@getKota');
+    Route::get('/json/{id}/{va}', 'RlhProvinsiController@json');
+    Route::get('/export/{id}', 'RlhProvinsiController@export');
+    Route::get('/getColumns', 'RlhProvinsiController@getColumns');
+    Route::get('/getProvinsi', 'RlhProvinsiController@getProvinsi');
+});
